@@ -10,7 +10,7 @@ import (
 // Flow
 // Make Role
 // Create Channel Category if not exist
-// Create Channel is specified
+// Create Channel if specified
 // Give role permission for Channel
 // Add Reaction to message, add players as they react
 func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger) {
@@ -20,7 +20,17 @@ func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, suga
 			Content: makePartyHandler(s, i, sugar),
 		},
 	})
+	message, err := s.InteractionResponse(i.Interaction)
 
+	if err != nil {
+		sugar.Panic("error adding reaction ", err)
+	}
+
+	err = s.MessageReactionAdd(message.ChannelID, message.ID, "👍")
+
+	if err != nil {
+		sugar.Error("error adding reaction ", err)
+	}
 }
 
 func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger) string {
