@@ -10,12 +10,13 @@ import (
 
 var Permissions int64 = 1067403562561
 var Mentionable = true
+var CategoryName = "Campaign Channels"
 
-func CreateNewChannel(sugar *zap.SugaredLogger, channelName string, s *discordgo.Session, g string, r string) (*discordgo.Channel, error) {
+func CreateNewChannel(sugar *zap.SugaredLogger, s *discordgo.Session, channelName string, g string, r string, c string) (*discordgo.Channel, error) {
 	channels, err := s.GuildChannels(g)
 
 	if err != nil {
-		sugar.Error("error fetching channels", err)
+		sugar.Error("error fetching channels ", err)
 		return nil, err
 	}
 
@@ -28,38 +29,36 @@ func CreateNewChannel(sugar *zap.SugaredLogger, channelName string, s *discordgo
 	channel, err := s.GuildChannelCreate(g, channelName, discordgo.ChannelTypeGuildText)
 
 	if err != nil {
-		sugar.Error("error creating channel", err)
+		sugar.Error("error creating channel ", err)
 		return nil, err
 	}
 
-	channelPermissions := []*discordgo.PermissionOverwrite{
-		{
-			ID:    r,
-			Type:  0,
-			Deny:  0,
-			Allow: Permissions,
-		},
+	err = s.ChannelPermissionSet(channel.ID, r, discordgo.PermissionOverwriteTypeRole, Permissions, 0)
+
+	if err != nil {
+		sugar.Error("error adding permissions to channel ", err)
+		return nil, err
 	}
 
 	channelEditData := discordgo.ChannelEdit{
-		PermissionOverwrites: channelPermissions,
+		ParentID: c,
 	}
 
 	channel, err = s.ChannelEdit(channel.ID, &channelEditData)
 
 	if err != nil {
-		sugar.Error("error editing channel", err)
+		sugar.Error("error editing channel ", err)
 		return nil, err
 	}
 
 	return channel, nil
 }
 
-func CreateNewRole(sugar *zap.SugaredLogger, roleName string, s *discordgo.Session, g string) (*discordgo.Role, error) {
+func CreateNewRole(sugar *zap.SugaredLogger, s *discordgo.Session, roleName string, g string) (*discordgo.Role, error) {
 	roles, err := s.GuildRoles(g)
 
 	if err != nil {
-		sugar.Error("error fetching roles", err)
+		sugar.Error("error fetching roles ", err)
 		return nil, fmt.Errorf("unable to create role")
 	}
 
@@ -79,11 +78,35 @@ func CreateNewRole(sugar *zap.SugaredLogger, roleName string, s *discordgo.Sessi
 	role, err := s.GuildRoleCreate(g, params)
 
 	if err != nil {
-		sugar.Error("error creating role", err)
+		sugar.Error("error creating role ", err)
 		return nil, fmt.Errorf("unable to create role")
 	}
 
 	return role, nil
+}
+
+func CreateNewCategory(sugar *zap.SugaredLogger, s *discordgo.Session, g string) (*discordgo.Channel, error) {
+	channels, err := s.GuildChannels(g)
+
+	if err != nil {
+		sugar.Error("error fetching channels ", err)
+		return nil, err
+	}
+
+	for _, v := range channels {
+		if v.Name == CategoryName {
+			return v, nil
+		}
+	}
+
+	category, err := s.GuildChannelCreate(g, CategoryName, discordgo.ChannelTypeGuildCategory)
+
+	if err != nil {
+		sugar.Error("error creating channel ", err)
+		return nil, err
+	}
+
+	return category, nil
 }
 
 func randomColor() *int {

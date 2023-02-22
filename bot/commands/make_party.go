@@ -9,6 +9,7 @@ import (
 
 // Flow
 // Make Role
+// Create Channel Category if not exist
 // Create Channel is specified
 // Give role permission for Channel
 // Add Reaction to message, add players as they react
@@ -42,19 +43,25 @@ func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, suga
 		createChannel = option.BoolValue()
 	}
 
-	role, err := CreateNewRole(sugar, partyName, s, i.GuildID)
+	role, err := CreateNewRole(sugar, s, partyName, i.GuildID)
 
 	if err != nil {
-		sugar.Error("error creating role", err)
+		sugar.Error("error creating role ", err)
 		return "Unable to create role"
 	}
 
 	if createChannel {
-
-		_, err := CreateNewChannel(sugar, partyName, s, i.GuildID, role.ID)
+		category, err := CreateNewCategory(sugar, s, i.GuildID)
 
 		if err != nil {
-			sugar.Error("error creating channel", err)
+			sugar.Error("error creating category ", err)
+			return "Unable to create category"
+		}
+
+		_, err = CreateNewChannel(sugar, s, partyName, i.GuildID, role.ID, category.ID)
+
+		if err != nil {
+			sugar.Error("error creating channel ", err)
 			return "Unable to create party channel"
 		}
 
