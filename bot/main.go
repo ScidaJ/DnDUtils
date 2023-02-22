@@ -1,25 +1,35 @@
 package main
 
 import (
+	"dndutils/bot/commands"
 	"flag"
-	"fmt"
 	"os"
+	"os/signal"
 
 	"github.com/bwmarrin/discordgo"
+	"go.uber.org/zap"
 )
 
 var Token string
+var GuildID string
+var RemoveCommands bool
 
 func init() {
 	flag.StringVar(&Token, "t", "", "Bot Token")
+	flag.StringVar(&GuildID, "g", "", "Guild ID")
+	flag.BoolVar(&RemoveCommands, "R", true, "Remove commands after shutdown")
 	flag.Parse()
 }
 
 func main() {
 	discord, err := discordgo.New("Bot " + Token)
 
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+	sugar := logger.Sugar()
+
 	if err != nil {
-		fmt.Println("error creating Discord session,", err)
+		sugar.Error("error creating Discord session,", err)
 		return
 	}
 
@@ -29,14 +39,30 @@ func main() {
 
 	err = discord.Open()
 	if err != nil {
-		fmt.Println("error opening connection,", err)
+		sugar.Error("error opening connection,", err)
 	}
 
-	fmt.Println("Bot is now running. Press CTRL-C to exit.")
+	defer discord.Close()
+
+	c := commands.Commands{
+		Sugar:          sugar,
+		GuildID:        GuildID,
+		DiscordSession: discord,
+	}
+
+	c.AddCommandHandlers()
+	c.RegisterCommands()
+
 	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, os.Interrupt)
+	sugar.Info("Bot is now running. Press CTRL-C to exit.")
 	<-sc
 
-	discord.Close()
+	err = c.RemoveCommands(RemoveCommands)
+
+	if err != nil {
+		sugar.Error("error removing commands", err)
+	}
 }
 
 func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
