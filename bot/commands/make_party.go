@@ -7,9 +7,22 @@ import (
 	"go.uber.org/zap"
 )
 
+// Flow
+// Make Role
+// Create Channel is specified
+// Give role permission for Channel
+// Add Reaction to message, add players as they react
 func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger) {
-	response := ""
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: makePartyHandler(s, i, sugar),
+		},
+	})
 
+}
+
+func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger) string {
 	options := i.ApplicationCommandData().Options
 
 	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
@@ -17,29 +30,36 @@ func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, suga
 		optionMap[opt.Name] = opt
 	}
 
-	channelName := ""
+	partyName := ""
 
 	if option, ok := optionMap["party-name"]; ok {
-		channelName = option.StringValue()
+		partyName = option.StringValue()
 	}
 
-	createdChannel, err := CreateNewChannel(sugar, channelName, s, i.GuildID)
+	createChannel := false
+
+	if option, ok := optionMap["make-channel"]; ok {
+		createChannel = option.BoolValue()
+	}
+
+	role, err := CreateNewRole(sugar, partyName, s, i.GuildID)
 
 	if err != nil {
-		sugar.Error("error creating channel", err)
+		sugar.Error("error creating role", err)
+		return "Unable to create role"
 	}
 
-	if !createdChannel {
-		response = "Unable to create party channel"
-	} else {
-		response = fmt.Sprintf("Created channel for party %v", channelName)
+	if createChannel {
+
+		_, err := CreateNewChannel(sugar, partyName, s, i.GuildID, role.ID)
+
+		if err != nil {
+			sugar.Error("error creating channel", err)
+			return "Unable to create party channel"
+		}
+
+		return fmt.Sprintf("Created channel and role for party %v", partyName)
 	}
 
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: response,
-		},
-	})
-
+	return fmt.Sprintf("Created role for party %v", partyName)
 }
