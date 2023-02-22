@@ -127,6 +127,13 @@ func CreateNewChannel(sugar *zap.SugaredLogger, s *discordgo.Session, channelNam
 	return channel, nil
 }
 
+// Creates a new role with the given role name.
+// Flow
+// Fetches all roles
+// Searches through them to see if role exists. If it does, return error
+// If it does not, then with the set role params, create the role.
+// If an error is returned, return the error
+// If no error is returned, return the role
 func CreateNewRole(sugar *zap.SugaredLogger, s *discordgo.Session, roleName string, g string) (*discordgo.Role, error) {
 	roles, err := s.GuildRoles(g)
 
