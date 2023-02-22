@@ -13,14 +13,14 @@ type (
 		Commands       []*discordgo.ApplicationCommand
 	}
 
-	HandleFunc func(s *discordgo.Session, i *discordgo.InteractionCreate)
+	HandleFunc func(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger)
 )
 
 func (c *Commands) AddCommandHandlers() {
 	c.DiscordSession.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		commandHandlers := getCommandsHandlers()
 		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
-			h(c.DiscordSession, i)
+			h(c.DiscordSession, i, c.Sugar)
 		}
 	})
 }
