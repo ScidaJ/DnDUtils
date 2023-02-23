@@ -8,9 +8,11 @@ import (
 )
 
 var Permissions int64 = 1067403562561
+var BlockChannel int64 = 1024
 var Mentionable = true
 var CategoryName = "Campaign Channels"
 
+// TODO: Give role to users upon reaction
 // Flow
 // Make Role
 // Create Channel Category if not exist
@@ -18,26 +20,36 @@ var CategoryName = "Campaign Channels"
 // Give role permission for Channel
 // Add Reaction to message, add players as they react
 func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger) {
+	response, err := makePartyHandler(s, i, sugar)
+
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: makePartyHandler(s, i, sugar),
+			Content: response,
 		},
 	})
+
+	if err != nil {
+		sugar.Panic("error making party ", err)
+		return
+	}
+
 	message, err := s.InteractionResponse(i.Interaction)
 
 	if err != nil {
 		sugar.Panic("error adding reaction ", err)
+		return
 	}
 
 	err = s.MessageReactionAdd(message.ChannelID, message.ID, "👍")
 
 	if err != nil {
 		sugar.Error("error adding reaction ", err)
+		return
 	}
 }
 
-func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger) string {
+func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger) (string, error) {
 	options := i.ApplicationCommandData().Options
 
 	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
@@ -61,7 +73,7 @@ func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, suga
 
 	if err != nil {
 		sugar.Error("error creating role ", err)
-		return "Unable to create role"
+		return "Unable to create role", err
 	}
 
 	if createChannel {
@@ -69,20 +81,20 @@ func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, suga
 
 		if err != nil {
 			sugar.Error("error creating category ", err)
-			return "Unable to create category"
+			return "Unable to create category", err
 		}
 
 		_, err = CreateNewChannel(sugar, s, partyName, i.GuildID, role.ID, category.ID)
 
 		if err != nil {
 			sugar.Error("error creating channel ", err)
-			return "Unable to create party channel"
+			return "Unable to create party channel", err
 		}
 
-		return fmt.Sprintf("Created channel and role for party %v", partyName)
+		return fmt.Sprintf("Created channel and role for party %v", partyName), nil
 	}
 
-	return fmt.Sprintf("Created role for party %v", partyName)
+	return fmt.Sprintf("Created role for party %v", partyName), nil
 }
 
 func CreateNewChannel(sugar *zap.SugaredLogger, s *discordgo.Session, channelName string, g string, r string, c string) (*discordgo.Channel, error) {
@@ -109,7 +121,21 @@ func CreateNewChannel(sugar *zap.SugaredLogger, s *discordgo.Session, channelNam
 	err = s.ChannelPermissionSet(channel.ID, r, discordgo.PermissionOverwriteTypeRole, Permissions, 0)
 
 	if err != nil {
-		sugar.Error("error adding permissions to channel ", err)
+		sugar.Error("error adding role permissions to channel ", err)
+		return nil, err
+	}
+
+	err = s.ChannelPermissionSet(channel.ID, s.State.User.ID, discordgo.PermissionOverwriteTypeMember, Permissions, 0)
+
+	if err != nil {
+		sugar.Error("error adding bot permissions to channel ", err)
+		return nil, err
+	}
+
+	err = s.ChannelPermissionSet(channel.ID, g, discordgo.PermissionOverwriteTypeRole, 0, BlockChannel)
+
+	if err != nil {
+		sugar.Error("error adding everyone permissions to channel ", err)
 		return nil, err
 	}
 
