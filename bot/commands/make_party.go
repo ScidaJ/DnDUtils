@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
@@ -11,16 +12,14 @@ var Permissions int64 = 1067403562561
 var BlockChannel int64 = 1024
 var Mentionable = true
 var CategoryName = "Campaign Channels"
+var ReactionTimeout = time.Duration(300 * float64(time.Second))
+var Emoji = "👍"
 
-// TODO: Give role to users upon reaction
-// Flow
-// Make Role
-// Create Channel Category if not exist
-// Create Channel if specified
-// Give role permission for Channel
-// Add Reaction to message, add players as they react
+// TODO: Send party/player info to API for DB party/player creation
+// Handler for /make-party command. Adds reacitons
+// for users to join party
 func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger) {
-	response, err := makePartyHandler(s, i, sugar)
+	response, role, err := makePartyHandler(s, i, sugar)
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -30,26 +29,58 @@ func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, suga
 	})
 
 	if err != nil {
-		sugar.Panic("error making party ", err)
+		sugar.Error("error making party ", err)
 		return
 	}
 
 	message, err := s.InteractionResponse(i.Interaction)
 
 	if err != nil {
-		sugar.Panic("error adding reaction ", err)
+		sugar.Error("error getting parent message ", err)
 		return
 	}
 
-	err = s.MessageReactionAdd(message.ChannelID, message.ID, "👍")
+	err = s.MessageReactionAdd(message.ChannelID, message.ID, Emoji)
 
 	if err != nil {
 		sugar.Error("error adding reaction ", err)
 		return
 	}
+
+	// Below adapted from https://github.com/Necroforger/dgwidgets
+	startTime := time.Now()
+
+	var reaction *discordgo.MessageReaction
+
+	for {
+		select {
+		case k := <-nextMessageReactionAddC(s):
+			reaction = k.MessageReaction
+		case <-time.After(time.Until(startTime.Add(ReactionTimeout))):
+			s.MessageReactionsRemoveAll(message.ChannelID, message.ID)
+			return
+		}
+
+		if reaction.MessageID != message.ID || s.State.User.ID == reaction.UserID {
+			continue
+		}
+
+		err := s.GuildMemberRoleAdd(reaction.GuildID, reaction.UserID, role)
+
+		if err != nil {
+			sugar.Error("error adding role to user ", err)
+			return
+		}
+
+		go func() {
+			time.Sleep(time.Millisecond * 250)
+			s.MessageReactionRemove(reaction.ChannelID, reaction.MessageID, Emoji, reaction.UserID)
+		}()
+	}
 }
 
-func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger) (string, error) {
+// Handler for the make-party command
+func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger) (string, string, error) {
 	options := i.ApplicationCommandData().Options
 
 	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
@@ -73,7 +104,7 @@ func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, suga
 
 	if err != nil {
 		sugar.Error("error creating role ", err)
-		return "Unable to create role", err
+		return "Unable to create role", "", err
 	}
 
 	if createChannel {
@@ -81,22 +112,23 @@ func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, suga
 
 		if err != nil {
 			sugar.Error("error creating category ", err)
-			return "Unable to create category", err
+			return "Unable to create category", "", err
 		}
 
 		_, err = CreateNewChannel(sugar, s, partyName, i.GuildID, role.ID, category.ID)
 
 		if err != nil {
 			sugar.Error("error creating channel ", err)
-			return "Unable to create party channel", err
+			return "Unable to create party channel", "", err
 		}
 
-		return fmt.Sprintf("Created channel and role for party %v", partyName), nil
+		return fmt.Sprintf("Created channel and role for party %v. React to this message to join it.", partyName), role.ID, nil
 	}
 
-	return fmt.Sprintf("Created role for party %v", partyName), nil
+	return fmt.Sprintf("Created role for party %v. React to this message to join it.", partyName), role.ID, nil
 }
 
+// Creates new text channel with a given name
 func CreateNewChannel(sugar *zap.SugaredLogger, s *discordgo.Session, channelName string, g string, r string, c string) (*discordgo.Channel, error) {
 	channels, err := s.GuildChannels(g)
 

@@ -8,6 +8,7 @@ type SlashCommand struct {
 	Options     []*discordgo.ApplicationCommandOption
 }
 
+// Different commands that the bot responds to. Visit the documentation to see them all.
 var (
 	MakeParty = SlashCommand{
 		Name:        "make-party",
