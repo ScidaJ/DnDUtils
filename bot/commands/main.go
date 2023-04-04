@@ -5,6 +5,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Types relating to commands.
 type (
 	Commands struct {
 		Sugar          *zap.SugaredLogger
@@ -16,6 +17,7 @@ type (
 	HandleFunc func(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger)
 )
 
+// Associates commands with their handlers.
 func (c *Commands) AddCommandHandlers() {
 	c.DiscordSession.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		commandHandlers := getCommandsHandlers()
@@ -25,6 +27,9 @@ func (c *Commands) AddCommandHandlers() {
 	})
 }
 
+// Registers the commands with the bot.
+// If they are not present within the slice returned by getComands()
+// they will not be  registered
 func (c *Commands) RegisterCommands() ([]*discordgo.ApplicationCommand, error) {
 	commands := getCommands()
 
@@ -50,17 +55,11 @@ func (c *Commands) RegisterCommands() ([]*discordgo.ApplicationCommand, error) {
 	return registeredCommands, nil
 }
 
+// Removes the commands from the bot. This is done when the bot shuts down. Makes testing easier
+// No need to fetch commands, though this may be changed in the future
 func (c *Commands) RemoveCommands(r bool) error {
 	if r {
 		c.Sugar.Info("Removing commands...")
-		// // We need to fetch the commands, since deleting requires the command ID.
-		// // We are doing this from the returned commands on line 375, because using
-		// // this will delete all the commands, which might not be desirable, so we
-		// // are deleting only the commands that we added.
-		// registeredCommands, err := s.ApplicationCommands(s.State.User.ID, *GuildID)
-		// if err != nil {
-		// 	log.Fatalf("Could not fetch registered commands: %v", err)
-		// }
 
 		for _, v := range c.Commands {
 			err := c.DiscordSession.ApplicationCommandDelete(c.DiscordSession.State.User.ID, c.GuildID, v.ID)
@@ -75,12 +74,17 @@ func (c *Commands) RemoveCommands(r bool) error {
 	return nil
 }
 
+// Command structs located in commands.go must
+// be in the returned slice or they will not be applied
 func getCommands() []SlashCommand {
 	return []SlashCommand{
 		MakeParty,
 	}
 }
 
+// Command handlers must be present in the returned
+// map along with the command itself or they will
+// not be registered.
 func getCommandsHandlers() map[string]HandleFunc {
 	return map[string]HandleFunc{
 		"make-party": MakePartyHandler,

@@ -35,8 +35,6 @@ func main() {
 
 	discord.AddHandler(messageHandler)
 
-	discord.Identify.Intents = discordgo.IntentGuildMessages
-
 	err = discord.Open()
 	if err != nil {
 		sugar.Error("error opening connection,", err)
