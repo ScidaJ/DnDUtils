@@ -6,6 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func postParty(c *gin.Context) {
+func PostParty(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, nil)
 }
