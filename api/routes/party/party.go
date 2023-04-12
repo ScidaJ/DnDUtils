@@ -1,4 +1,4 @@
-package main
+package party
 
 import (
 	"net/http"
@@ -8,12 +8,4 @@ import (
 
 func postParty(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, nil)
-}
-
-func main() {
-	r := gin.Default()
-
-	r.POST("/party", postParty)
-
-	r.Run("localhost:8080")
 }
