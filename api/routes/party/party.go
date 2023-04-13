@@ -7,5 +7,5 @@ import (
 )
 
 func PostParty(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, nil)
+	c.IndentedJSON(http.StatusOK, "Success!")
 }

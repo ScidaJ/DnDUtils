@@ -11,10 +11,11 @@ type (
 		Sugar          *zap.SugaredLogger
 		GuildID        string
 		DiscordSession *discordgo.Session
+		Endpoint       string
 		Commands       []*discordgo.ApplicationCommand
 	}
 
-	HandleFunc func(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger)
+	HandleFunc func(s *discordgo.Session, i *discordgo.InteractionCreate, e string, sugar *zap.SugaredLogger)
 )
 
 // Associates commands with their handlers.
@@ -22,7 +23,7 @@ func (c *Commands) AddCommandHandlers() {
 	c.DiscordSession.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		commandHandlers := getCommandsHandlers()
 		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
-			h(c.DiscordSession, i, c.Sugar)
+			h(c.DiscordSession, i, c.Endpoint, c.Sugar)
 		}
 	})
 }
