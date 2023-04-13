@@ -1,7 +1,11 @@
 package commands
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -14,12 +18,13 @@ var Mentionable = true
 var CategoryName = "Campaign Channels"
 var ReactionTimeout = time.Duration(300 * float64(time.Second))
 var Emoji = "👍"
+var PostRoute = "party"
 
 // TODO: Send party/player info to API for DB party/player creation
 // Handler for /make-party command. Adds reacitons
 // for users to join party
-func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger) {
-	response, role, err := makePartyHandler(s, i, sugar)
+func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e string, sugar *zap.SugaredLogger) {
+	response, role, err := makePartyHandler(s, i, e, sugar)
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -80,7 +85,8 @@ func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, suga
 }
 
 // Handler for the make-party command
-func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, sugar *zap.SugaredLogger) (string, string, error) {
+func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e string, sugar *zap.SugaredLogger) (string, string, error) {
+
 	options := i.ApplicationCommandData().Options
 
 	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
@@ -99,6 +105,8 @@ func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, suga
 	if option, ok := optionMap["make-channel"]; ok {
 		createChannel = option.BoolValue()
 	}
+
+	err := partyAPICall(partyName, i.GuildID, e, sugar)
 
 	role, err := CreateNewRole(sugar, s, partyName, i.GuildID)
 
@@ -245,4 +253,29 @@ func CreateNewCategory(sugar *zap.SugaredLogger, s *discordgo.Session, g string)
 	}
 
 	return category, nil
+}
+
+func partyAPICall(partyName string, serverID string, endpoint string, sugar *zap.SugaredLogger) error {
+	uri, err := url.JoinPath(endpoint, PostRoute)
+
+	if err != nil {
+		sugar.Error("error building url ", err)
+		return err
+	}
+
+	postBody, _ := json.Marshal(map[string]string{
+		"party_name": partyName,
+		"server_id":  serverID,
+	})
+
+	responseBody := bytes.NewBuffer(postBody)
+
+	_, err = http.Post(uri, "application/json", responseBody)
+
+	if err != nil {
+		sugar.Error("error creating party with api ", err)
+		return err
+	}
+
+	return nil
 }

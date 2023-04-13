@@ -1,21 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"net/http"
+	"dndutils/api/routes/party"
+
+	"github.com/gin-gonic/gin"
 )
 
-func homePage(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Welcome to the HomePage!")
-	fmt.Println("Endpoint Hit: homePage")
-}
-
-func handleRequests() {
-	http.HandleFunc("/", homePage)
-	log.Fatal(http.ListenAndServe("localhost:8080", nil))
-}
-
 func main() {
-	handleRequests()
+	r := gin.Default()
+
+	r.POST("/party", party.PostParty)
+
+	r.Run("localhost:8080")
 }

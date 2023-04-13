@@ -12,11 +12,13 @@ import (
 
 var Token string
 var GuildID string
+var Endpoint string
 var RemoveCommands bool
 
 func init() {
 	flag.StringVar(&Token, "t", "", "Bot Token")
 	flag.StringVar(&GuildID, "g", "", "Guild ID")
+	flag.StringVar(&Endpoint, "e", "", "API Endpoint")
 	flag.BoolVar(&RemoveCommands, "R", true, "Remove commands after shutdown")
 	flag.Parse()
 }
@@ -46,6 +48,7 @@ func main() {
 		Sugar:          sugar,
 		GuildID:        GuildID,
 		DiscordSession: discord,
+		Endpoint:       Endpoint,
 	}
 
 	c.AddCommandHandlers()
