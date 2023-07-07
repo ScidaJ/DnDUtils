@@ -1,10 +1,10 @@
 package main
 
 import (
-	"dndutils/api/routes/party"
+	"dndutils/api/configs"
+	"dndutils/api/routes"
 	"os"
 
-	"github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -12,9 +12,12 @@ import (
 
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+	configs.ConnectDB()
+
 	r := gin.Default()
 
-	r.POST("/party", logger.SetLogger(), party.PostParty)
+	routes.PartyRoute(r, &log.Logger)
 
 	r.Run("localhost:8080")
 }

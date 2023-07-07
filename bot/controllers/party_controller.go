@@ -1,4 +1,4 @@
-package commands
+package controllers
 
 import (
 	"bytes"
@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"dndutils/api/models"
+	"dndutils/bot/utils"
 
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
@@ -59,7 +62,7 @@ func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e st
 
 	for {
 		select {
-		case k := <-nextMessageReactionAddC(s):
+		case k := <-utils.NextMessageReactionAddC(s):
 			reaction = k.MessageReaction
 		case <-time.After(time.Until(startTime.Add(ReactionTimeout))):
 			s.MessageReactionsRemoveAll(message.ChannelID, message.ID)
@@ -106,7 +109,12 @@ func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e st
 		createChannel = option.BoolValue()
 	}
 
-	err := partyAPICall(partyName, i.GuildID, e, sugar)
+	err := partyAPICall(partyName, i.GuildID, i.Member.User.ID, e, sugar)
+
+	if err != nil {
+		sugar.Error("error sending party to api ", err)
+		return "Unable to create party", "", err
+	}
 
 	role, err := CreateNewRole(sugar, s, partyName, i.GuildID)
 
@@ -216,7 +224,7 @@ func CreateNewRole(sugar *zap.SugaredLogger, s *discordgo.Session, roleName stri
 
 	params := &discordgo.RoleParams{
 		Name:        roleName,
-		Color:       randomColor(),
+		Color:       utils.RandomColor(),
 		Permissions: &Permissions,
 		Mentionable: &Mentionable,
 	}
@@ -255,7 +263,7 @@ func CreateNewCategory(sugar *zap.SugaredLogger, s *discordgo.Session, g string)
 	return category, nil
 }
 
-func partyAPICall(partyName string, serverID string, endpoint string, sugar *zap.SugaredLogger) error {
+func partyAPICall(partyName string, serverID string, owner string, endpoint string, sugar *zap.SugaredLogger) error {
 	uri, err := url.JoinPath(endpoint, PostRoute)
 
 	if err != nil {
@@ -263,9 +271,15 @@ func partyAPICall(partyName string, serverID string, endpoint string, sugar *zap
 		return err
 	}
 
-	postBody, _ := json.Marshal(map[string]string{
-		"party_name": partyName,
-		"server_id":  serverID,
+	users := []string{
+		owner,
+	}
+
+	postBody, _ := json.Marshal(models.Party{
+		Name:     partyName,
+		ServerId: serverID,
+		Owner:    owner,
+		Users:    users,
 	})
 
 	responseBody := bytes.NewBuffer(postBody)

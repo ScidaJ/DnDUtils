@@ -2,7 +2,7 @@ package main
 
 import (
 	"dndutils/bot/commands"
-	"flag"
+	"dndutils/bot/configs"
 	"os"
 	"os/signal"
 
@@ -10,20 +10,13 @@ import (
 	"go.uber.org/zap"
 )
 
-var Token string
-var GuildID string
-var Endpoint string
-var RemoveCommands bool
-
-func init() {
-	flag.StringVar(&Token, "t", "", "Bot Token")
-	flag.StringVar(&GuildID, "g", "", "Guild ID")
-	flag.StringVar(&Endpoint, "e", "", "API Endpoint")
-	flag.BoolVar(&RemoveCommands, "R", true, "Remove commands after shutdown")
-	flag.Parse()
-}
+var RemoveCommands bool = true
 
 func main() {
+	Token := configs.EnvBotToken()
+	GuildID := configs.EnvGuildId()
+	Endpoint := configs.EnvAPIURL()
+
 	discord, err := discordgo.New("Bot " + Token)
 
 	logger, _ := zap.NewProduction()
