@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
 
-	"dndutils/api/models"
+	"dndutils/bot/models"
 	"dndutils/bot/utils"
 
 	"github.com/bwmarrin/discordgo"
@@ -21,13 +22,25 @@ var Mentionable = true
 var CategoryName = "Campaign Channels"
 var ReactionTimeout = time.Duration(300 * float64(time.Second))
 var Emoji = "👍"
-var PostRoute = "party"
+var PostPartyRoute = "party"
 
 // TODO: Send party/player info to API for DB party/player creation
 // Handler for /make-party command. Adds reacitons
 // for users to join party
 func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e string, sugar *zap.SugaredLogger) {
-	response, role, err := makePartyHandler(s, i, e, sugar)
+	response, role, partyId, err := makePartyHandler(s, i, e, sugar)
+
+	if err != nil {
+		sugar.Error("error making party ", err)
+		return
+	}
+
+	// Adding the original author as a user
+	err = AddUserHandler(i.Member.User.ID, i.GuildID, partyId, e)
+
+	if err != nil {
+		sugar.Error("error adding user ", err)
+	}
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -35,11 +48,6 @@ func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e st
 			Content: response,
 		},
 	})
-
-	if err != nil {
-		sugar.Error("error making party ", err)
-		return
-	}
 
 	message, err := s.InteractionResponse(i.Interaction)
 
@@ -80,6 +88,12 @@ func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e st
 			return
 		}
 
+		err = AddUserHandler(reaction.UserID, reaction.GuildID, partyId, e)
+
+		if err != nil {
+			sugar.Error("error adding user ", err)
+		}
+
 		go func() {
 			time.Sleep(time.Millisecond * 250)
 			s.MessageReactionRemove(reaction.ChannelID, reaction.MessageID, Emoji, reaction.UserID)
@@ -88,7 +102,7 @@ func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e st
 }
 
 // Handler for the make-party command
-func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e string, sugar *zap.SugaredLogger) (string, string, error) {
+func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e string, sugar *zap.SugaredLogger) (string, string, string, error) {
 
 	options := i.ApplicationCommandData().Options
 
@@ -109,18 +123,18 @@ func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e st
 		createChannel = option.BoolValue()
 	}
 
-	err := partyAPICall(partyName, i.GuildID, i.Member.User.ID, e, sugar)
+	partyId, err := partyAPICall(partyName, i.GuildID, i.Member.User.ID, e, sugar)
 
 	if err != nil {
 		sugar.Error("error sending party to api ", err)
-		return "Unable to create party", "", err
+		return "Unable to create party", "", "", err
 	}
 
 	role, err := CreateNewRole(sugar, s, partyName, i.GuildID)
 
 	if err != nil {
 		sugar.Error("error creating role ", err)
-		return "Unable to create role", "", err
+		return "Unable to create role", "", "", err
 	}
 
 	if createChannel {
@@ -128,20 +142,20 @@ func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e st
 
 		if err != nil {
 			sugar.Error("error creating category ", err)
-			return "Unable to create category", "", err
+			return "Unable to create category", "", "", err
 		}
 
 		_, err = CreateNewChannel(sugar, s, partyName, i.GuildID, role.ID, category.ID)
 
 		if err != nil {
 			sugar.Error("error creating channel ", err)
-			return "Unable to create party channel", "", err
+			return "Unable to create party channel", "", "", err
 		}
 
-		return fmt.Sprintf("Created channel and role for party %v. React to this message to join it.", partyName), role.ID, nil
+		return fmt.Sprintf("Created channel and role for party %v. React to this message to join it.", partyName), role.ID, "", nil
 	}
 
-	return fmt.Sprintf("Created role for party %v. React to this message to join it.", partyName), role.ID, nil
+	return fmt.Sprintf("Created role for party %v. React to this message to join it.", partyName), role.ID, partyId, nil
 }
 
 // Creates new text channel with a given name
@@ -263,12 +277,12 @@ func CreateNewCategory(sugar *zap.SugaredLogger, s *discordgo.Session, g string)
 	return category, nil
 }
 
-func partyAPICall(partyName string, serverID string, owner string, endpoint string, sugar *zap.SugaredLogger) error {
-	uri, err := url.JoinPath(endpoint, PostRoute)
+func partyAPICall(partyName string, serverID string, owner string, endpoint string, sugar *zap.SugaredLogger) (string, error) {
+	uri, err := url.JoinPath(endpoint, PostPartyRoute)
 
 	if err != nil {
 		sugar.Error("error building url ", err)
-		return err
+		return "", err
 	}
 
 	users := []string{
@@ -282,14 +296,27 @@ func partyAPICall(partyName string, serverID string, owner string, endpoint stri
 		Users:    users,
 	})
 
-	responseBody := bytes.NewBuffer(postBody)
+	payload := bytes.NewBuffer(postBody)
 
-	_, err = http.Post(uri, "application/json", responseBody)
-
+	resp, err := http.Post(uri, "application/json", payload)
 	if err != nil {
 		sugar.Error("error creating party with api ", err)
-		return err
+		return "", err
 	}
 
-	return nil
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		sugar.Error("error reading api response ", err)
+		return "", err
+	}
+
+	var data models.PostPartyResponse
+
+	err = json.Unmarshal(bodyBytes, &data)
+	if err != nil {
+		sugar.Error("error unmarshalling api response ", err)
+		return "", err
+	}
+
+	return data.Data.Data.InsertedID, nil
 }
