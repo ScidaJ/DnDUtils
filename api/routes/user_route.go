@@ -8,6 +8,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func PartyRoute(router *gin.Engine, log *zerolog.Logger) {
-	router.POST("/party", logger.SetLogger(), controllers.CreateParty())
+func UserRoute(router *gin.Engine, log *zerolog.Logger) {
+	router.POST("/user", logger.SetLogger(), controllers.CreateUser())
 }
