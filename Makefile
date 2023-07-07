@@ -5,3 +5,6 @@ build-bot:
 
 run-bot:
 	go run bot/main.go -t $(BOT_TOKEN) -g $(GUILD_ID) -e $(API_ENDPOINT)
+
+run-api:
+	go run api/main.go
