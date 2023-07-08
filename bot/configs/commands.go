@@ -1,17 +1,15 @@
-package commands
+package configs
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"dndutils/bot/models"
 
-type SlashCommand struct {
-	Name        string
-	Description string
-	Options     []*discordgo.ApplicationCommandOption
-}
+	"github.com/bwmarrin/discordgo"
+)
 
 // Different commands that the bot responds to. Visit the documentation to see them all.
 var (
-	MakeParty = SlashCommand{
-		Name:        "make-party",
+	CreateParty = models.SlashCommand{
+		Name:        "create-party",
 		Description: "Make a channel and gives players permissions to view the channel",
 		Options: []*discordgo.ApplicationCommandOption{
 			{
@@ -22,10 +20,14 @@ var (
 			},
 			{
 				Type:        discordgo.ApplicationCommandOptionBoolean,
-				Name:        "make-channel",
-				Description: "Make a new channel for the party?",
+				Name:        "create-channel",
+				Description: "create a new channel for the party?",
 				Required:    true,
 			},
 		},
+	}
+	GetUsers = models.SlashCommand{
+		Name:        "get-users",
+		Description: "Print ALL known userIds'. Remove before production.",
 	}
 )

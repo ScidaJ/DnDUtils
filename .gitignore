@@ -16,6 +16,7 @@
 
 # Privacy
 .env
+Outline.txt
 
 # Directories
 bin/

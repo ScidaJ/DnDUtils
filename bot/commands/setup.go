@@ -1,6 +1,10 @@
 package commands
 
 import (
+	"dndutils/bot/configs"
+	con "dndutils/bot/controllers"
+	"dndutils/bot/models"
+
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
 )
@@ -77,9 +81,10 @@ func (c *Commands) RemoveCommands(r bool) error {
 
 // Command structs located in commands.go must
 // be in the returned slice or they will not be applied
-func getCommands() []SlashCommand {
-	return []SlashCommand{
-		MakeParty,
+func getCommands() []models.SlashCommand {
+	return []models.SlashCommand{
+		configs.CreateParty,
+		configs.GetUsers,
 	}
 }
 
@@ -88,6 +93,7 @@ func getCommands() []SlashCommand {
 // not be registered.
 func getCommandsHandlers() map[string]HandleFunc {
 	return map[string]HandleFunc{
-		"make-party": MakePartyHandler,
+		"create-party": con.CreatePartyHandler,
+		"get-users":    con.GetAllUsersHandler,
 	}
 }
