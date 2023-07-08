@@ -8,8 +8,8 @@ import (
 
 // Different commands that the bot responds to. Visit the documentation to see them all.
 var (
-	MakeParty = models.SlashCommand{
-		Name:        "make-party",
+	CreateParty = models.SlashCommand{
+		Name:        "create-party",
 		Description: "Make a channel and gives players permissions to view the channel",
 		Options: []*discordgo.ApplicationCommandOption{
 			{
@@ -20,8 +20,8 @@ var (
 			},
 			{
 				Type:        discordgo.ApplicationCommandOptionBoolean,
-				Name:        "make-channel",
-				Description: "Make a new channel for the party?",
+				Name:        "create-channel",
+				Description: "create a new channel for the party?",
 				Required:    true,
 			},
 		},

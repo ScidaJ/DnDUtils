@@ -24,10 +24,10 @@ var ReactionTimeout = time.Duration(300 * float64(time.Second))
 var Emoji = "👍"
 var PostPartyRoute = "party"
 
-// Handler for /make-party command. Adds reacitons
+// Handler for /create-party command. Adds reacitons
 // for users to join party
-func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e string, sugar *zap.SugaredLogger) {
-	response, role, partyId, err := makePartyHandler(s, i, e, sugar)
+func CreatePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e string, sugar *zap.SugaredLogger) {
+	response, role, partyId, err := createPartyHandler(s, i, e, sugar)
 
 	if err != nil {
 		sugar.Error("error making party ", err)
@@ -106,7 +106,7 @@ func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e st
 }
 
 // Handler for the make-party command
-func makePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e string, sugar *zap.SugaredLogger) (string, string, string, error) {
+func createPartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e string, sugar *zap.SugaredLogger) (string, string, string, error) {
 
 	options := i.ApplicationCommandData().Options
 

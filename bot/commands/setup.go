@@ -83,7 +83,7 @@ func (c *Commands) RemoveCommands(r bool) error {
 // be in the returned slice or they will not be applied
 func getCommands() []models.SlashCommand {
 	return []models.SlashCommand{
-		configs.MakeParty,
+		configs.CreateParty,
 		configs.GetUsers,
 	}
 }
@@ -93,7 +93,7 @@ func getCommands() []models.SlashCommand {
 // not be registered.
 func getCommandsHandlers() map[string]HandleFunc {
 	return map[string]HandleFunc{
-		"make-party": con.MakePartyHandler,
-		"get-users":  con.GetAllUsersHandler,
+		"create-party": con.CreatePartyHandler,
+		"get-users":    con.GetAllUsersHandler,
 	}
 }
