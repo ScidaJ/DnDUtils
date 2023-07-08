@@ -3,6 +3,7 @@ package controllers
 import (
 	"dndutils/bot/configs"
 	"dndutils/bot/models"
+	"dndutils/bot/responses"
 	"dndutils/bot/utils"
 	"encoding/json"
 	"errors"
@@ -29,7 +30,7 @@ func GetAllUsersHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e 
 }
 
 func getAllUsersHandler(i *discordgo.InteractionCreate, e string, sugar *zap.SugaredLogger) (string, error) {
-	var users models.GetAllUsersResponse
+	var users responses.GetAllUsersResponse
 	approvedList := configs.EnvApprovedUsers()
 
 	if !utils.IncludesString(approvedList, i.Member.User.ID) {

@@ -1,4 +1,6 @@
-package models
+package responses
+
+import "dndutils/bot/models"
 
 type GetAllUsersResponse struct {
 	Message string          `json:"message,omitempty"`
@@ -6,5 +8,5 @@ type GetAllUsersResponse struct {
 }
 
 type getAllUsersData struct {
-	Data []User `json:"data"`
+	Data []models.User `json:"data"`
 }

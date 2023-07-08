@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"dndutils/bot/models"
+	"dndutils/bot/responses"
 	"dndutils/bot/utils"
 
 	"github.com/bwmarrin/discordgo"
@@ -195,7 +196,7 @@ func partyAPICall(partyName string, serverID string, owner string, endpoint stri
 		return "", err
 	}
 
-	var data models.PostPartyResponse
+	var data responses.PostPartyResponse
 
 	err = json.Unmarshal(bodyBytes, &data)
 	if err != nil {

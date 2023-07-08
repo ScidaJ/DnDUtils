@@ -1,4 +1,4 @@
-package models
+package responses
 
 //TODO: Refactor this. Ugly.
 
