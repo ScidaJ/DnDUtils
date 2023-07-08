@@ -26,4 +26,8 @@ var (
 			},
 		},
 	}
+	GetUsers = models.SlashCommand{
+		Name:        "get-users",
+		Description: "Print ALL known userIds'. Remove before production.",
+	}
 )

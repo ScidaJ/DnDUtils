@@ -26,13 +26,13 @@ func CreateParty() gin.HandlerFunc {
 
 		//validate the request body
 		if err := c.BindJSON(&party); err != nil {
-			c.JSON(http.StatusBadRequest, responses.Response{Status: http.StatusBadRequest, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
+			c.JSON(http.StatusBadRequest, responses.Response{Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 			return
 		}
 
 		//use valiator to validate request fields
 		if validationErr := validate.Struct(&party); validationErr != nil {
-			c.JSON(http.StatusBadRequest, responses.Response{Status: http.StatusBadRequest, Message: "error", Data: map[string]interface{}{"data": validationErr.Error()}})
+			c.JSON(http.StatusBadRequest, responses.Response{Message: "error", Data: map[string]interface{}{"data": validationErr.Error()}})
 		}
 
 		newParty := models.Party{
@@ -44,9 +44,9 @@ func CreateParty() gin.HandlerFunc {
 
 		result, err := partyCollection.InsertOne(ctx, newParty)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, responses.Response{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
+			c.JSON(http.StatusInternalServerError, responses.Response{Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 		}
 
-		c.JSON(http.StatusCreated, responses.Response{Status: http.StatusCreated, Message: "success", Data: map[string]interface{}{"data": result}})
+		c.JSON(http.StatusCreated, responses.Response{Message: "success", Data: map[string]interface{}{"data": result}})
 	}
 }

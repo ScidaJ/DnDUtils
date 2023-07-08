@@ -84,6 +84,7 @@ func (c *Commands) RemoveCommands(r bool) error {
 func getCommands() []models.SlashCommand {
 	return []models.SlashCommand{
 		configs.MakeParty,
+		configs.GetUsers,
 	}
 }
 
@@ -93,5 +94,6 @@ func getCommands() []models.SlashCommand {
 func getCommandsHandlers() map[string]HandleFunc {
 	return map[string]HandleFunc{
 		"make-party": con.MakePartyHandler,
+		"get-users":  con.GetAllUsersHandler,
 	}
 }

@@ -22,3 +22,14 @@ func NextMessageReactionAddC(s *discordgo.Session) chan *discordgo.MessageReacti
 	})
 	return out
 }
+
+// Loops over a slice s to check if it contains key k.
+func IncludesString(s []string, k string) bool {
+	for _, v := range s {
+		if v == k {
+			return true
+		}
+	}
+
+	return false
+}

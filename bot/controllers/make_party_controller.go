@@ -68,37 +68,42 @@ func MakePartyHandler(s *discordgo.Session, i *discordgo.InteractionCreate, e st
 
 	var reaction *discordgo.MessageReaction
 
-	for {
-		select {
-		case k := <-utils.NextMessageReactionAddC(s):
-			reaction = k.MessageReaction
-		case <-time.After(time.Until(startTime.Add(ReactionTimeout))):
-			s.MessageReactionsRemoveAll(message.ChannelID, message.ID)
-			return
+	go func() {
+		for {
+			select {
+			case k := <-utils.NextMessageReactionAddC(s):
+				reaction = k.MessageReaction
+			case <-time.After(time.Until(startTime.Add(ReactionTimeout))):
+				s.MessageReactionsRemoveAll(message.ChannelID, message.ID)
+				return
+			}
+
+			if reaction.MessageID != message.ID || s.State.User.ID == reaction.UserID {
+				continue
+			}
+
+			err := s.GuildMemberRoleAdd(reaction.GuildID, reaction.UserID, role)
+
+			if err != nil {
+				sugar.Error("error adding role to user ", err)
+				return
+			}
+
+			err = AddUserHandler(reaction.UserID, reaction.GuildID, partyId, e)
+
+			if err != nil {
+				sugar.Error("error adding user ", err)
+			}
+
+			go func() {
+				time.Sleep(time.Millisecond * 250)
+				err := s.MessageReactionRemove(reaction.ChannelID, reaction.MessageID, Emoji, reaction.UserID)
+				if err != nil {
+					sugar.Error("error removing reaction", err)
+				}
+			}()
 		}
-
-		if reaction.MessageID != message.ID || s.State.User.ID == reaction.UserID {
-			continue
-		}
-
-		err := s.GuildMemberRoleAdd(reaction.GuildID, reaction.UserID, role)
-
-		if err != nil {
-			sugar.Error("error adding role to user ", err)
-			return
-		}
-
-		err = AddUserHandler(reaction.UserID, reaction.GuildID, partyId, e)
-
-		if err != nil {
-			sugar.Error("error adding user ", err)
-		}
-
-		go func() {
-			time.Sleep(time.Millisecond * 250)
-			s.MessageReactionRemove(reaction.ChannelID, reaction.MessageID, Emoji, reaction.UserID)
-		}()
-	}
+	}()
 }
 
 // Handler for the make-party command

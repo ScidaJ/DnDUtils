@@ -10,4 +10,5 @@ import (
 
 func UserRoute(router *gin.Engine, log *zerolog.Logger) {
 	router.POST("/user", logger.SetLogger(), controllers.CreateUser())
+	router.GET("/user", logger.SetLogger(), controllers.GetAllUsers())
 }

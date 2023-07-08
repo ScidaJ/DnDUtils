@@ -8,10 +8,10 @@ import (
 	"net/url"
 )
 
-var PostUserRoute = "user"
+var UserRoute = "user"
 
 func AddUserHandler(userId string, guildId string, partyId string, endpoint string) error {
-	uri, err := url.JoinPath(endpoint, PostPartyRoute)
+	uri, err := url.JoinPath(endpoint, UserRoute)
 
 	if err != nil {
 		//sugar.Error("error building url ", err)
@@ -27,9 +27,9 @@ func AddUserHandler(userId string, guildId string, partyId string, endpoint stri
 	}
 
 	postBody, _ := json.Marshal(models.User{
-		Id:      userId,
-		Servers: servers,
-		Parties: parties,
+		DiscordId: userId,
+		Servers:   servers,
+		Parties:   parties,
 	})
 
 	responseBody := bytes.NewBuffer(postBody)

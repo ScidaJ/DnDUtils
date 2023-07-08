@@ -17,12 +17,11 @@ func main() {
 	GuildID := configs.EnvGuildId()
 	Endpoint := configs.EnvAPIURL()
 
-	discord, err := discordgo.New("Bot " + Token)
-
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 	sugar := logger.Sugar()
 
+	discord, err := discordgo.New("Bot " + Token)
 	if err != nil {
 		sugar.Error("error creating Discord session,", err)
 		return

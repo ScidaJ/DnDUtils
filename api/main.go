@@ -18,6 +18,7 @@ func main() {
 	r := gin.Default()
 
 	routes.PartyRoute(r, &log.Logger)
+	routes.UserRoute(r, &log.Logger)
 
 	r.Run("localhost:8080")
 }
