@@ -6,6 +6,7 @@ import (
 	"dndutils/api/models"
 	"dndutils/api/responses"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -16,6 +17,7 @@ import (
 )
 
 var userCollection *mongo.Collection = configs.GetCollection(configs.DB, "users")
+var reg *regexp.Regexp = regexp.MustCompile("^[0-9]*$")
 
 func GetUser() gin.HandlerFunc {
 	return getUser
@@ -35,8 +37,15 @@ func getUser(c *gin.Context) {
 
 	userId := c.Param("userId")
 
+	userIdClean := reg.ReplaceAllString(userId, "")
+
+	if len(userIdClean) != 18 {
+		c.JSON(http.StatusBadRequest, responses.Response{Data: map[string]interface{}{"data": "This error should never come up in normal operation. Contact me on Discord, jscida, for assistance."}})
+		return
+	}
+
 	var user models.User
-	err := userCollection.FindOne(ctx, bson.M{"discord_id": userId}).Decode(&user)
+	err := userCollection.FindOne(ctx, bson.M{"discord_id": userIdClean}).Decode(&user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.Response{Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 		return
@@ -124,8 +133,10 @@ func createUser(c *gin.Context) {
 }
 
 func userExists(discordId string) (bool, error) {
+	discordIdClean := reg.ReplaceAllString(discordId, "")
+
 	findOptions := options.FindOne()
-	filter := bson.D{primitive.E{Key: "discord_id", Value: discordId}}
+	filter := bson.D{primitive.E{Key: "discord_id", Value: discordIdClean}}
 
 	var results bson.M
 	err := userCollection.FindOne(context.TODO(), filter, findOptions).Decode(&results)
